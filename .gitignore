@@ -1,0 +1,39 @@
+# Node.js
+/frontend/node_modules/
+/frontend/.env
+/frontend/.cache
+/frontend/.vscode
+/frontend/package-lock.json
+/frontend/yarn.lock
+
+# Go
+/backend/bin/
+/backend/*.exe
+/backend/*.test
+/backend/*.out
+/backend/*.log
+/backend/.env
+
+# IDEs and Editors
+/.idea/
+/.vscode/
+/*.swp
+/*.swo
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# Log files
+*.log
+
+# Build output
+/build/
+dist/
+out/
+
+# Environment Variables
+.env
+
+# Dependency directories
+node_modules/
