@@ -10,6 +10,7 @@ import (
 	"os"
 
 	"github.com/joho/godotenv"
+	"github.com/jonreiter/govader"
 	"google.golang.org/api/option"
 	"google.golang.org/api/youtube/v3"
 )
@@ -80,9 +81,15 @@ func getComments(videoID, apiKey string) ([]Comment, error) {
 	// Process the response and create Comment structs
 	var comments []Comment
 	for _, item := range response.Items {
+		// Call analyzeSentiment and handle both the sentiment and error
+		sentiment, err := analyzeSentiment(item.Snippet.TopLevelComment.Snippet.TextDisplay)
+		if err != nil {
+			return nil, fmt.Errorf("Error analyzing sentiment: %v", err)
+		}
+
 		comment := Comment{
 			Text:      item.Snippet.TopLevelComment.Snippet.TextDisplay,
-			Sentiment: analyzeSentiment(item.Snippet.TopLevelComment.Snippet.TextDisplay),
+			Sentiment: sentiment,
 		}
 		comments = append(comments, comment)
 	}
@@ -92,8 +99,16 @@ func getComments(videoID, apiKey string) ([]Comment, error) {
 
 // analyzeSentiment performs sentiment analysis on the given text
 // This is a placeholder function and should be replaced with actual sentiment analysis logic
-func analyzeSentiment(text string) string {
-	// TODO: Implement sentiment analysis using a language model or API
-	// For now, we'll return a placeholder result
-	return "neutral"
+func analyzeSentiment(text string) (string, error) {
+	analyzer := govader.NewSentimentIntensityAnalyzer()
+	sentiment := analyzer.PolarityScores(text)
+
+	switch {
+	case sentiment.Compound > 0.05:
+		return "positive", nil
+	case sentiment.Compound < -0.05:
+		return "negative", nil
+	default:
+		return "neutral", nil
+	}
 }
