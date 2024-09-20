@@ -14,12 +14,14 @@
         <li v-for="comment in comments" :key="comment.text">{{ comment.text }} - Sentiment: {{ comment.sentiment }}</li>
       </ul>
     </div>
+    <StatsContainer />
   </div>
 </template>
 
 <script>
 // Import axios for making HTTP requests
 import axios from 'axios';
+import StatsContainer from './components/StatsContainer.vue';
 
 export default {
   name: 'App',
@@ -44,6 +46,9 @@ export default {
         // TODO: Add user-friendly error handling (e.g., display error message to user)
       }
     },
+  },
+  components: {
+    StatsContainer,
   },
 };
 </script>
