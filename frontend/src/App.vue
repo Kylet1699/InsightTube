@@ -1,64 +1,67 @@
-<!-- App.vue -->
 <template>
   <div id="app">
-    <h1>InsightTube</h1>
-    <!-- Input field for YouTube Video ID -->
-    <input v-model="videoId" placeholder="Enter YouTube Video ID" />
-    <!-- Button to trigger comment analysis -->
-    <button @click="fetchComments">Analyze Comments</button>
-    <!-- Conditional rendering of comments analysis results -->
-    <div v-if="comments.length > 0">
-      <h2>Comments Analysis</h2>
-      <ul>
-        <!-- Loop through comments and display text and sentiment -->
-        <li v-for="comment in comments" :key="comment.text">{{ comment.text }} - Sentiment: {{ comment.sentiment }}</li>
-      </ul>
+    <div class="title-container">
+      <h1 class="title"><span class="insight">Insight</span><span class="tube">Tube</span></h1>
+      <input v-model="videoId" placeholder="Enter YouTube Video ID" />
+      <button @click="analyzeVideo">Analyze Video</button>
     </div>
-    <StatsContainer />
+    <VideoAnalysis ref="videoAnalysis" />
   </div>
 </template>
 
 <script>
-// Import axios for making HTTP requests
-import axios from 'axios';
-import StatsContainer from './components/StatsContainer.vue';
+import VideoAnalysis from './components/VideoAnalysis.vue';
 
 export default {
   name: 'App',
-  // Define reactive data properties
+  components: {
+    VideoAnalysis,
+  },
   data() {
     return {
-      videoId: '', // Stores the user-input YouTube Video ID
-      comments: [], // Stores the fetched and analyzed comments
+      videoId: '',
     };
   },
   methods: {
-    // Method to fetch and analyze comments
-    async fetchComments() {
-      try {
-        // Make GET request to our backend API
-        const response = await axios.get(`/api/comments?videoId=${this.videoId}`);
-        // Update comments data with the response
-        this.comments = response.data;
-      } catch (error) {
-        // Log any errors that occur during the request
-        console.error('Error fetching comments:', error);
-        // TODO: Add user-friendly error handling (e.g., display error message to user)
-      }
+    analyzeVideo() {
+      this.$refs.videoAnalysis.videoId = this.videoId;
+      this.$refs.videoAnalysis.fetchVideoData();
     },
-  },
-  components: {
-    StatsContainer,
   },
 };
 </script>
 
 <style>
-/* Basic styles for the app */
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #f0f0f0;
+}
+
 #app {
   font-family: Avenir, Helvetica, Arial, sans-serif;
-  text-align: center;
-  color: #2c3e50;
-  margin-top: 60px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #2b2a27;
+  min-height: 100vh;
+}
+
+.title-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.title {
+  font-size: 2.5em;
+  margin-bottom: 20px;
+}
+
+.insight {
+  color: white;
+}
+
+.tube {
+  color: red;
 }
 </style>

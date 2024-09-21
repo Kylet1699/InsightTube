@@ -18,8 +18,21 @@ import (
 // Comment struct defines the structure for our comment data
 // It will be used for JSON encoding/decoding
 type Comment struct {
-	Text      string `json:"text"`      // The actual comment text
-	Sentiment string `json:"sentiment"` // The analyzed sentiment of the comment
+	ID        string `json:"id"`
+	Text      string `json:"text"`
+	Sentiment string `json:"sentiment"`
+}
+
+type VideoStats struct {
+	Title        string `json:"title"`
+	ViewCount    uint64 `json:"viewCount"`
+	LikeCount    uint64 `json:"likeCount"`
+	CommentCount uint64 `json:"commentCount"`
+}
+
+type VideoData struct {
+	VideoStats VideoStats `json:"videoStats"`
+	Comments   []Comment  `json:"comments"`
 }
 
 func main() {
@@ -34,67 +47,78 @@ func main() {
 	port := os.Getenv("PORT")
 
 	// Set up HTTP handler for the /api/comments endpoint
-	http.HandleFunc("/api/comments", func(w http.ResponseWriter, r *http.Request) {
-		// Extract videoId from the query parameters
+	http.HandleFunc("/api/video", func(w http.ResponseWriter, r *http.Request) {
 		videoID := r.URL.Query().Get("videoId")
 		if videoID == "" {
 			http.Error(w, "Missing videoId parameter", http.StatusBadRequest)
 			return
 		}
 
-		// Call getComments function to fetch and analyze comments
-		comments, err := getComments(videoID, apiKey)
+		videoData, err := getVideoData(videoID, apiKey)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		// Set response header to JSON
 		w.Header().Set("Content-Type", "application/json")
-		// Encode comments as JSON and send the response
-		json.NewEncoder(w).Encode(comments)
+		json.NewEncoder(w).Encode(videoData)
 	})
 
-	// Print server start message
 	fmt.Printf("Server is running on port %s\n", port)
-	// Start the HTTP server
 	log.Fatal(http.ListenAndServe(":"+port, nil))
 }
 
 // getComments fetches comments for a given video ID and performs sentiment analysis
-func getComments(videoID, apiKey string) ([]Comment, error) {
-	// Create a new YouTube service client
+func getVideoData(videoID, apiKey string) (*VideoData, error) {
 	ctx := context.Background()
 	service, err := youtube.NewService(ctx, option.WithAPIKey(apiKey))
 	if err != nil {
 		return nil, fmt.Errorf("error creating YouTube client: %v", err)
 	}
 
-	// Prepare the API call to fetch comment threads
-	call := service.CommentThreads.List([]string{"snippet"}).VideoId(videoID).MaxResults(100)
-	// Execute the API call
-	response, err := call.Do()
+	// Fetch video statistics
+	videoResponse, err := service.Videos.List([]string{"snippet", "statistics"}).Id(videoID).Do()
+	if err != nil {
+		return nil, fmt.Errorf("error fetching video data: %v", err)
+	}
+
+	if len(videoResponse.Items) == 0 {
+		return nil, fmt.Errorf("no video found with ID %s", videoID)
+	}
+
+	video := videoResponse.Items[0]
+	videoStats := VideoStats{
+		Title:        video.Snippet.Title,
+		ViewCount:    video.Statistics.ViewCount,
+		LikeCount:    video.Statistics.LikeCount,
+		CommentCount: video.Statistics.CommentCount,
+	}
+
+	// Fetch comments
+	commentsResponse, err := service.CommentThreads.List([]string{"snippet"}).VideoId(videoID).MaxResults(100).Do()
 	if err != nil {
 		return nil, fmt.Errorf("error fetching comments: %v", err)
 	}
 
-	// Process the response and create Comment structs
 	var comments []Comment
-	for _, item := range response.Items {
-		// Call analyzeSentiment and handle both the sentiment and error
+
+	for _, item := range commentsResponse.Items {
 		sentiment, err := analyzeSentiment(item.Snippet.TopLevelComment.Snippet.TextDisplay)
 		if err != nil {
-			return nil, fmt.Errorf("Error analyzing sentiment: %v", err)
+			return nil, fmt.Errorf("error analyzing sentiment: %v", err)
 		}
-
 		comment := Comment{
+			ID:        item.Snippet.TopLevelComment.Id,
 			Text:      item.Snippet.TopLevelComment.Snippet.TextDisplay,
 			Sentiment: sentiment,
 		}
 		comments = append(comments, comment)
 	}
 
-	return comments, nil
+	return &VideoData{
+		VideoStats: videoStats,
+		Comments:   comments,
+	}, nil
 }
 
 // analyzeSentiment performs sentiment analysis on the given text
