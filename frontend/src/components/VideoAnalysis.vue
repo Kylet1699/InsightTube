@@ -42,7 +42,13 @@ export default {
       videoId: '',
       videoStats: null,
       comments: [],
+      isLoading: false,
     };
+  },
+  watch: {
+    isLoading(newValue) {
+      this.$emit('loading-change', newValue);
+    },
   },
   computed: {
     overallSentiment() {
@@ -59,6 +65,7 @@ export default {
   },
   methods: {
     async fetchVideoData() {
+      this.isLoading = true;
       try {
         const response = await axios.get(`/api/video?videoId=${this.videoId}`);
         this.videoStats = response.data.videoStats;
@@ -66,6 +73,8 @@ export default {
       } catch (error) {
         console.error('Error fetching video data:', error);
         // Handle error (e.g., show error message to user)
+      } finally {
+        this.isLoading = false;
       }
     },
     formatNumber(num) {

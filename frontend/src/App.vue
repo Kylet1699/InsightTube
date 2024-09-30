@@ -2,10 +2,10 @@
   <div id="app">
     <div class="title-container">
       <h1 class="title"><span class="insight">Insight</span><span class="tube">Tube</span></h1>
-      <input v-model="videoURL" placeholder="Enter YouTube Video URL" />
-      <button @click="analyzeVideo">Analyze Video</button>
+      <v-text-field class="video-url-input" label="Video URL or ID" v-model="videoURL" placeholder="Type here..." />
+      <v-btn @click="analyzeVideo" elevation="2" :loading="this.isLoading">Analyze</v-btn>
     </div>
-    <VideoAnalysis ref="videoAnalysis" />
+    <VideoAnalysis ref="videoAnalysis" @loading-change="updateIsLoading" />
   </div>
 </template>
 
@@ -21,6 +21,7 @@ export default {
     return {
       videoURL: '',
       videoId: '',
+      isLoading: false,
     };
   },
   methods: {
@@ -32,6 +33,10 @@ export default {
 
       this.$refs.videoAnalysis.videoId = this.videoId;
       this.$refs.videoAnalysis.fetchVideoData();
+    },
+    updateIsLoading(isLoading) {
+      console.log(isLoading);
+      this.isLoading = isLoading;
     },
   },
 };
@@ -69,5 +74,11 @@ body {
 
 .tube {
   color: red;
+}
+
+.video-url-input {
+  width: 30rem;
+  color: white;
+  border-radius: 3rem;
 }
 </style>
