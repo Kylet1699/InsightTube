@@ -16,21 +16,6 @@
       </div>
     </section>
 
-    <!-- Comments Section -->
-    <!-- <section class="comments">
-      <h2>Comments</h2>
-      
-      <div v-if="comments.length > 0">
-        <div v-for="comment in comments" :key="comment.id" class="comment">
-          <p>{{ comment.text }}</p>
-          <p class="sentiment" :class="comment.sentiment">Sentiment: {{ comment.sentiment }}</p>
-        </div>
-      </div>
-      <div v-else>
-        <p>No comments available</p>
-      </div>
-    </section> -->
-
     <v-card class="comments">
       <v-card-title>Comments</v-card-title>
       <v-card-text>
@@ -130,12 +115,10 @@ export default {
     });
 
     const fetchVideoData = async () => {
-      console.log(props);
       if (!props.videoId) return;
 
       emit('loading-change', true);
       isLoading.value = true;
-      console.log(props.videoId);
       try {
         const response = await axios.get(`/api/video?videoId=${props.videoId}`);
         videoStats.value = response.data.videoStats;
@@ -182,124 +165,38 @@ export default {
       fetchVideoData,
     };
   },
-  // data() {
-  //   return {
-  //     videoId: '',
-  //     videoStats: null,
-  //     comments: [],
-  //     isLoading: false,
-  //     sortBy: 'sentiment',
-  //     sortOrder: 'desc',
-  //     sortByOptions: [
-  //       { text: 'Sentiment', value: 'sentiment' },
-  //       { text: 'Comment Length', value: 'length' },
-  //     ],
-  //     sortOrderOptions: [
-  //       { text: 'Ascending', value: 'asc' },
-  //       { text: 'Descending', value: 'desc' },
-  //     ],
-  //   };
-  // },
-  // watch: {
-  //   isLoading(newValue) {
-  //     this.$emit('loading-change', newValue);
-  //   },
-  // },
-  // computed: {
-  //   overallSentiment() {
-  //     if (this.comments.length === 0) return 'N/A';
-
-  //     const sentimentCounts = this.comments.reduce((acc, comment) => {
-  //       acc[comment.sentiment] = (acc[comment.sentiment] || 0) + 1;
-  //       return acc;
-  //     }, {});
-
-  //     const maxSentiment = Object.entries(sentimentCounts).reduce((a, b) => (a[1] > b[1] ? a : b));
-  //     return maxSentiment[0];
-  //   },
-
-  //   sortedComments() {
-  //     return [...this.comments].sort((a, b) => {
-  //       let compareA, compareB;
-  //       if (this.sortBy === 'sentiment') {
-  //         const sentimentOrder = { positive: 3, neutral: 2, negative: 1 };
-  //         compareA = sentimentOrder[a.sentiment];
-  //         compareB = sentimentOrder[b.sentiment];
-  //       } else if (this.sortBy === 'length') {
-  //         compareA = a.text.length;
-  //         compareB = b.text.length;
-  //       }
-
-  //       if (this.sortOrder === 'asc') {
-  //         return compareA - compareB;
-  //       } else {
-  //         return compareB - compareA;
-  //       }
-  //     });
-  //   },
-  // },
-  // methods: {
-  //   async fetchVideoData() {
-  //     this.isLoading = true;
-  //     try {
-  //       const response = await axios.get(`/api/video?videoId=${this.videoId}`);
-  //       this.videoStats = response.data.videoStats;
-  //       this.comments = response.data.comments;
-  //     } catch (error) {
-  //       console.error('Error fetching video data:', error);
-  //       // Handle error (e.g., show error message to user)
-  //     } finally {
-  //       this.isLoading = false;
-  //     }
-  //   },
-  //   formatNumber(num) {
-  //     return new Intl.NumberFormat().format(num);
-  //   },
-  // },
-  // mounted() {
-  //   // You might want to trigger this based on user input or a prop
-  //   this.videoId = 'example-video-id';
-  //   this.fetchVideoData();
-  // },
 };
 </script>
 
 <style scoped>
 .video-analysis {
-  font-family: Arial, sans-serif;
   min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 20px;
   color: white;
-}
-
-.overview,
-.comments {
-  background-color: #333;
-  border-radius: 10px;
-  padding: 20px;
-  margin-bottom: 20px;
-  width: 80%;
-  max-width: 800px;
+  margin: 3rem;
+  padding: 2rem;
+  border-radius: 1rem;
 }
 
 .overview {
-  border: 2px solid #666;
+  padding: 1rem;
+  background-color: #282c34 !important;
+  border-radius: 0.2rem;
+  border: #252525 2px solid;
 }
 
-h2 {
-  color: #ddd;
+.comments {
+  margin-top: 1rem;
+  background-color: #333 !important;
+}
+
+.v-card-title {
+  color: #ddd !important;
   border-bottom: 1px solid #666;
-  padding-bottom: 10px;
 }
 
-.comment {
-  background-color: #393937;
-  border-radius: 5px;
-  padding: 10px;
-  margin-bottom: 10px;
+.v-card-text {
+  margin-top: 1rem;
+  color: white !important;
 }
 
 .sentiment {
@@ -307,12 +204,37 @@ h2 {
 }
 
 .positive {
-  color: #4caf50;
+  color: #4caf50 !important;
 }
 .negative {
-  color: #f44336;
+  color: #f44336 !important;
 }
 .neutral {
-  color: #ffc107;
+  color: #ffc107 !important;
+}
+
+:deep(.v-list) {
+  background-color: transparent !important;
+}
+
+:deep(.v-list-item) {
+  color: white !important;
+}
+
+:deep(.v-field__outline) {
+  --v-field-border-opacity: 1 !important;
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+
+:deep(.v-field__input) {
+  color: white !important;
+}
+
+:deep(.v-label) {
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+
+:deep(.v-select__selection) {
+  color: white !important;
 }
 </style>
