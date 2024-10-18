@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/joho/godotenv"
 	"github.com/jonreiter/govader"
@@ -21,6 +22,7 @@ type Comment struct {
 	ID        string `json:"id"`
 	Text      string `json:"text"`
 	Sentiment string `json:"sentiment"`
+	UpdatedAt string `json:"updatedAt"`
 }
 
 type VideoStats struct {
@@ -107,10 +109,18 @@ func getVideoData(videoID, apiKey string) (*VideoData, error) {
 		if err != nil {
 			return nil, fmt.Errorf("error analyzing sentiment: %v", err)
 		}
+
+		// Parse time string into time object to format
+		t, err := time.Parse(time.RFC3339, item.Snippet.TopLevelComment.Snippet.UpdatedAt)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse time: %v", err)
+		}
+
 		comment := Comment{
 			ID:        item.Snippet.TopLevelComment.Id,
 			Text:      item.Snippet.TopLevelComment.Snippet.TextDisplay,
 			Sentiment: sentiment,
+			UpdatedAt: t.Format("2006-01-02 15:04:05"),
 		}
 		comments = append(comments, comment)
 	}

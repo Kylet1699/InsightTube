@@ -44,8 +44,10 @@
         <v-list v-if="sortedComments.length > 0">
           <v-list-item v-for="comment in sortedComments" :key="comment.id">
             <v-list-item-title>{{ comment.text }}</v-list-item-title>
-            <v-list-item-subtitle :class="['sentiment', comment.sentiment]">
-              Sentiment: {{ comment.sentiment }}
+            <v-list-item-subtitle>
+              <span :class="['sentiment', comment.sentiment]">Sentiment: {{ comment.sentiment }} </span>
+
+              <span class="updated-at"> &emsp;Updated @ {{ comment.updatedAt }} </span>
             </v-list-item-subtitle>
           </v-list-item>
         </v-list>
@@ -211,6 +213,10 @@ export default {
 }
 .neutral {
   color: #ffc107 !important;
+}
+
+.updated-at {
+  font-size: 0.7rem;
 }
 
 :deep(.v-list) {
