@@ -77,6 +77,7 @@ export default {
     const sortByOptions = [
       { title: 'Sentiment', value: 'sentiment' },
       { title: 'Comment Length', value: 'length' },
+      { title: 'Updated At', value: 'updated at' },
     ];
 
     const sortOrderOptions = [
@@ -99,20 +100,28 @@ export default {
     const sortedComments = computed(() => {
       return [...comments.value].sort((a, b) => {
         let compareA, compareB;
-        if (sortBy.value === 'sentiment') {
-          const sentimentOrder = { positive: 3, neutral: 2, negative: 1 };
-          compareA = sentimentOrder[a.sentiment];
-          compareB = sentimentOrder[b.sentiment];
-        } else if (sortBy.value === 'length') {
-          compareA = a.text.length;
-          compareB = b.text.length;
+
+        switch (sortBy.value) {
+          case 'sentiment': {
+            const sentimentOrder = { positive: 3, neutral: 2, negative: 1 };
+            compareA = sentimentOrder[a.sentiment];
+            compareB = sentimentOrder[b.sentiment];
+            break;
+          }
+          case 'length':
+            compareA = a.text.length;
+            compareB = b.text.length;
+            break;
+          case 'updated at':
+            compareA = new Date(a.updatedAt.replace(/ /, 'T')).getTime();
+            compareB = new Date(b.updatedAt.replace(/ /, 'T')).getTime();
+            break;
+          default:
+            console.log('Error sorting');
+            return 0;
         }
 
-        if (sortOrder.value === 'asc') {
-          return compareA - compareB;
-        } else {
-          return compareB - compareA;
-        }
+        return sortOrder.value === 'asc' ? compareA - compareB : compareB - compareA;
       });
     });
 
