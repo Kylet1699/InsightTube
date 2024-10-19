@@ -34,10 +34,7 @@ export default {
         videoId.value = videoURL.value; // Assume it's already an ID
       }
 
-      console.log(videoId.value);
-
       if (videoAnalysis.value) {
-        console.log(videoAnalysis.value);
         videoAnalysis.value.fetchVideoData();
       }
     };

@@ -17,30 +17,32 @@
     </section>
 
     <v-card class="comments">
-      <v-card-title>Comments</v-card-title>
+      <!-- <v-card-title>Comments</v-card-title> -->
+      <v-card-title class="d-flex align-center">
+        <span class="mr-4">Comments</span>
+        <v-spacer></v-spacer>
+        <v-select
+          v-model="sortBy"
+          :items="sortByOptions"
+          label="Sort by"
+          @update:model-value="sortComments"
+          density="compact"
+          hide-details
+          class="sorting-select mr-2"
+          style="max-width: 190px"
+        ></v-select>
+        <v-select
+          v-model="sortOrder"
+          :items="sortOrderOptions"
+          label="Order"
+          @update:model-value="sortComments"
+          density="compact"
+          hide-details
+          class="sorting-select"
+          style="max-width: 150px"
+        ></v-select>
+      </v-card-title>
       <v-card-text>
-        <v-row class="sort-controls">
-          <v-col cols="12" sm="6">
-            <v-select
-              v-model="sortBy"
-              :items="sortByOptions"
-              label="Sort by"
-              @update:model-value="sortComments"
-              dense
-              outlined
-            ></v-select>
-          </v-col>
-          <v-col cols="12" sm="6">
-            <v-select
-              v-model="sortOrder"
-              :items="sortOrderOptions"
-              label="Order"
-              @update:model-value="sortComments"
-              dense
-              outlined
-            ></v-select>
-          </v-col>
-        </v-row>
         <v-list v-if="sortedComments.length > 0">
           <v-list-item v-for="comment in sortedComments" :key="comment.id">
             <v-list-item-title>{{ comment.text }}</v-list-item-title>
