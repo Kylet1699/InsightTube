@@ -11,7 +11,7 @@
   </v-app>
 </template>
 <script>
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 import VideoAnalysis from './components/VideoAnalysis.vue';
 
 export default {
@@ -38,6 +38,19 @@ export default {
         videoAnalysis.value.fetchVideoData();
       }
     };
+
+    // Watch for changes in the video data and update the page title
+    watch(
+      () => videoAnalysis.value?.videoStats,
+      (newStats) => {
+        if (newStats) {
+          document.title = `InsightTube - ${newStats.title}`;
+        } else {
+          document.title = 'InsightTube';
+        }
+      },
+      { deep: true }
+    );
 
     const updateIsLoading = (loading) => {
       isLoading.value = loading;

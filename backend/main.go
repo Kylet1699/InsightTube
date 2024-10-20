@@ -30,6 +30,7 @@ type VideoStats struct {
 	ViewCount    uint64 `json:"viewCount"`
 	LikeCount    uint64 `json:"likeCount"`
 	CommentCount uint64 `json:"commentCount"`
+	ThumbnailURL string `json:"thumbnailUrl"`
 }
 
 type VideoData struct {
@@ -94,6 +95,7 @@ func getVideoData(videoID, apiKey string) (*VideoData, error) {
 		ViewCount:    video.Statistics.ViewCount,
 		LikeCount:    video.Statistics.LikeCount,
 		CommentCount: video.Statistics.CommentCount,
+		ThumbnailURL: video.Snippet.Thumbnails.High.Url,
 	}
 
 	// Fetch comments

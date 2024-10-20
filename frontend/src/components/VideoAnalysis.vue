@@ -1,20 +1,28 @@
 <!-- VideoAnalysis.vue -->
 <template>
   <div class="video-analysis">
-    <!-- Overview Section -->
-    <section class="overview">
-      <h2>Video Overview</h2>
-      <div v-if="videoStats">
-        <p><strong>Title:</strong> {{ videoStats.title }}</p>
-        <p><strong>View Count:</strong> {{ formatNumber(videoStats.viewCount) }}</p>
-        <p><strong>Like Count:</strong> {{ formatNumber(videoStats.likeCount) }}</p>
-        <p><strong>Comment Count:</strong> {{ formatNumber(videoStats.commentCount) }}</p>
-        <p><strong>Overall Sentiment:</strong> {{ overallSentiment }}</p>
-      </div>
-      <div v-else>
+    <v-card class="overview mb-6">
+      <v-card-title>Video Overview</v-card-title>
+      <v-card-text v-if="videoStats">
+        <v-row>
+          <v-col cols="12" md="8">
+            <p><strong>Title:</strong> {{ videoStats.title }}</p>
+            <p><strong>View Count:</strong> {{ formatNumber(videoStats.viewCount) }}</p>
+            <p><strong>Like Count:</strong> {{ formatNumber(videoStats.likeCount) }}</p>
+            <p><strong>Comment Count:</strong> {{ formatNumber(videoStats.commentCount) }}</p>
+            <p>
+              <strong>Overall Sentiment:</strong> <span :class="[overallSentiment]">{{ overallSentiment }} </span>
+            </p>
+          </v-col>
+          <v-col cols="12" md="4" class="d-flex justify-center align-center">
+            <v-img :src="videoStats.thumbnailUrl" :aspect-ratio="16 / 9" class="video-thumbnail" cover></v-img>
+          </v-col>
+        </v-row>
+      </v-card-text>
+      <v-card-text v-else>
         <p>No video data available</p>
-      </div>
-    </section>
+      </v-card-text>
+    </v-card>
 
     <v-card class="comments">
       <!-- <v-card-title>Comments</v-card-title> -->
@@ -191,10 +199,13 @@ export default {
 }
 
 .overview {
-  padding: 1rem;
   background-color: #282c34 !important;
   border-radius: 0.2rem;
   border: #252525 2px solid;
+}
+
+.overview p {
+  padding-bottom: 0.8rem;
 }
 
 .comments {
