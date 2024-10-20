@@ -1,6 +1,7 @@
 <!-- VideoAnalysis.vue -->
 <template>
   <div class="video-analysis">
+    <!-- Video overview -->
     <v-card class="overview mb-6">
       <v-card-title>Video Overview</v-card-title>
       <v-card-text v-if="videoStats">
@@ -24,8 +25,33 @@
       </v-card-text>
     </v-card>
 
+    <!-- D3 Charts -->
+    <v-card class="charts-section mb-6">
+      <v-card-title class="charts-title">Data Visualizations</v-card-title>
+      <v-card-text>
+        <v-row>
+          <v-col cols="12" md="6">
+            <v-card class="chart-card">
+              <v-card-title class="chart-title">Sentiment Distribution</v-card-title>
+              <v-card-text class="chart-container">
+                <div id="sentiment-pie-chart"></div>
+              </v-card-text>
+            </v-card>
+          </v-col>
+          <v-col cols="12" md="6">
+            <v-card class="chart-card">
+              <v-card-title class="chart-title">Sentiment Over Time</v-card-title>
+              <v-card-text class="chart-container">
+                <div id="sentiment-line-chart"></div>
+              </v-card-text>
+            </v-card>
+          </v-col>
+        </v-row>
+      </v-card-text>
+    </v-card>
+
+    <!-- Comments -->
     <v-card class="comments">
-      <!-- <v-card-title>Comments</v-card-title> -->
       <v-card-title class="d-flex align-center">
         <span class="mr-4">Comments</span>
         <v-spacer></v-spacer>
@@ -70,6 +96,7 @@
 <script>
 import { ref, computed, watch } from 'vue';
 import axios from 'axios';
+import * as d3 from 'd3';
 
 export default {
   name: 'VideoAnalysis',
@@ -162,6 +189,114 @@ export default {
       // The actual sorting is done in the sortedComments computed property
     };
 
+    const createSentimentPieChart = () => {
+      console.log('creating pie chart');
+      console.log(comments.value.filter((c) => c.sentiment === 'positive').length);
+      const data = [
+        { sentiment: 'Positive', value: comments.value.filter((c) => c.sentiment === 'positive').length },
+        { sentiment: 'Neutral', value: comments.value.filter((c) => c.sentiment === 'neutral').length },
+        { sentiment: 'Negative', value: comments.value.filter((c) => c.sentiment === 'negative').length },
+      ];
+
+      const width = 300;
+      const height = 300;
+      const radius = Math.min(width, height) / 2;
+
+      const color = d3
+        .scaleOrdinal()
+        .domain(['Positive', 'Neutral', 'Negative'])
+        .range(['#4CAF50', '#FFC107', '#F44336']);
+
+      const pie = d3
+        .pie()
+        .value((d) => d.value)
+        .sort(null);
+
+      const arc = d3.arc().innerRadius(0).outerRadius(radius);
+
+      // Clear any existing SVG
+      d3.select('#sentiment-pie-chart').selectAll('*').remove();
+
+      // Create pie chart
+      const svg = d3
+        .select('#sentiment-pie-chart')
+        .append('svg')
+        .attr('width', width)
+        .attr('height', height)
+        .append('g')
+        .attr('transform', `translate(${width / 2},${height / 2})`);
+
+      const arcs = svg.selectAll('arc').data(pie(data)).enter().append('g');
+
+      arcs
+        .append('path')
+        .attr('d', arc)
+        .attr('fill', (d) => color(d.data.sentiment));
+
+      arcs
+        .append('text')
+        .attr('transform', (d) => `translate(${arc.centroid(d)})`)
+        .attr('text-anchor', 'middle')
+        .text((d) => `${d.data.sentiment}:${d.data.value}`);
+    };
+
+    const createSentimentLineChart = () => {
+      console.log('creating line chart');
+      const data = comments.value.map((comment, index) => ({
+        index,
+        positive: comment.sentiment === 'positive' ? 1 : 0,
+        neutral: comment.sentiment === 'neutral' ? 1 : 0,
+        negative: comment.sentiment === 'negative' ? 1 : 0,
+      }));
+
+      const width = 500;
+      const height = 300;
+      const margin = { top: 20, right: 30, bottom: 30, left: 40 };
+
+      const x = d3
+        .scaleLinear()
+        .domain([0, data.length - 1])
+        .range([margin.left, width - margin.right]);
+
+      const y = d3
+        .scaleLinear()
+        .domain([0, d3.max(data, (d) => Math.max(d.positive, d.neutral, d.negative))])
+        .range([height - margin.bottom, margin.top]);
+
+      const line = d3
+        .line()
+        .x((d, i) => x(i))
+        .y((d) => y(d));
+
+      // Clear any existing SVG
+      d3.select('#sentiment-line-chart').selectAll('*').remove();
+
+      const svg = d3.select('#sentiment-line-chart').append('svg').attr('width', width).attr('height', height);
+
+      svg
+        .append('g')
+        .attr('transform', `translate(0,${height - margin.bottom})`)
+        .call(d3.axisBottom(x));
+
+      svg.append('g').attr('transform', `translate(${margin.left},0)`).call(d3.axisLeft(y));
+
+      const sentiments = ['positive', 'neutral', 'negative'];
+      const colors = ['#4CAF50', '#FFC107', '#F44336'];
+
+      sentiments.forEach((sentiment, i) => {
+        svg
+          .append('path')
+          .datum(data)
+          .attr('fill', 'none')
+          .attr('stroke', colors[i])
+          .attr('stroke-width', 1.5)
+          .attr(
+            'd',
+            line.y((d) => y(d[sentiment]))
+          );
+      });
+    };
+
     watch(
       () => props.videoId,
       (newVideoId) => {
@@ -170,6 +305,16 @@ export default {
           fetchVideoData();
         }
       }
+    );
+
+    watch(
+      () => comments.value,
+      () => {
+        if (comments.value.length > 0) {
+          createSentimentLineChart(), createSentimentPieChart();
+        }
+      },
+      { deep: true }
     );
 
     return {
@@ -184,6 +329,7 @@ export default {
       sortComments,
       isLoading,
       fetchVideoData,
+      comments,
     };
   },
 };
@@ -264,5 +410,68 @@ export default {
 
 :deep(.v-select__selection) {
   color: white !important;
+}
+
+/* d3 charts */
+.charts-section {
+  background-color: #333 !important;
+}
+
+.charts-title {
+  color: white !important;
+  font-size: 1.5em !important;
+  padding: 16px;
+  background-color: rgba(0, 0, 0, 0.2);
+}
+
+.chart-card {
+  background-color: #3f3f3f !important;
+  border-radius: 8px;
+  overflow: hidden;
+  height: 100%; /* Ensure both cards have the same height */
+}
+
+.chart-title {
+  color: white !important;
+  text-align: center;
+  padding: 16px;
+  font-size: 1.2em;
+  background-color: rgba(0, 0, 0, 0.2);
+}
+
+#sentiment-pie-chart,
+#sentiment-line-chart {
+  background-color: #3f3f3f;
+  border-radius: 8px;
+  padding: 16px;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+#sentiment-pie-chart text,
+#sentiment-line-chart text {
+  fill: white;
+}
+
+#sentiment-line-chart path {
+  stroke-width: 2;
+}
+
+#sentiment-line-chart .axis path,
+#sentiment-line-chart .axis line {
+  stroke: #888;
+}
+
+#sentiment-line-chart .axis text {
+  font-size: 10px;
+}
+
+/* Ensure responsiveness */
+@media (max-width: 960px) {
+  .chart-card {
+    margin-bottom: 20px;
+  }
 }
 </style>
