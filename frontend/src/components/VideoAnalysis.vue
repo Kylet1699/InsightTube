@@ -170,7 +170,10 @@ export default {
       try {
         const response = await axios.get(`/api/video?videoId=${props.videoId}`);
         videoStats.value = response.data.videoStats;
-        comments.value = response.data.comments;
+        comments.value = response.data.comments.map((comment) => ({
+          ...comment,
+          date: new Date(comment.updatedAt),
+        }));
       } catch (error) {
         console.error('Error fetching video data:', error);
         // Handle error (e.g., show error message to user)
@@ -189,9 +192,7 @@ export default {
       // The actual sorting is done in the sortedComments computed property
     };
 
-    const createSentimentPieChart = () => {
-      console.log('creating pie chart');
-      console.log(comments.value.filter((c) => c.sentiment === 'positive').length);
+    const createSentimentDonutChart = () => {
       const data = [
         { sentiment: 'Positive', value: comments.value.filter((c) => c.sentiment === 'positive').length },
         { sentiment: 'Neutral', value: comments.value.filter((c) => c.sentiment === 'neutral').length },
@@ -212,12 +213,14 @@ export default {
         .value((d) => d.value)
         .sort(null);
 
-      const arc = d3.arc().innerRadius(0).outerRadius(radius);
+      const arc = d3
+        .arc()
+        .innerRadius(radius * 0.6) // Inner radius for donut
+        .outerRadius(radius);
 
       // Clear any existing SVG
       d3.select('#sentiment-pie-chart').selectAll('*').remove();
 
-      // Create pie chart
       const svg = d3
         .select('#sentiment-pie-chart')
         .append('svg')
@@ -233,52 +236,86 @@ export default {
         .attr('d', arc)
         .attr('fill', (d) => color(d.data.sentiment));
 
-      arcs
+      // Add centered legend
+      const legend = svg.append('g').attr('text-anchor', 'middle').attr('dominant-baseline', 'middle');
+
+      legend
+        .selectAll(null)
+        .data(data)
+        .enter()
         .append('text')
-        .attr('transform', (d) => `translate(${arc.centroid(d)})`)
-        .attr('text-anchor', 'middle')
-        .text((d) => `${d.data.sentiment}:${d.data.value}`);
+        .attr('y', (d, i) => i * 20 - 20)
+        .attr('fill', (d) => color(d.sentiment))
+        .text((d) => `${d.sentiment}: ${d.value}`)
+        .style('font-size', '12px')
+        .style('font-weight', 'bold')
+        .style('text-shadow', '1px 1px 1px rgba(0,0,0,0.5)'); // Add a text shadow for better visibility
     };
 
     const createSentimentLineChart = () => {
-      console.log('creating line chart');
-      const data = comments.value.map((comment, index) => ({
-        index,
-        positive: comment.sentiment === 'positive' ? 1 : 0,
-        neutral: comment.sentiment === 'neutral' ? 1 : 0,
-        negative: comment.sentiment === 'negative' ? 1 : 0,
-      }));
+      // Process data
+      const commentsByDate = d3.group(comments.value, (d) => d3.timeDay.floor(new Date(d.date)));
+      const data = Array.from(commentsByDate, ([date, comments]) => ({
+        date,
+        positive: comments.filter((c) => c.sentiment === 'positive').length,
+        neutral: comments.filter((c) => c.sentiment === 'neutral').length,
+        negative: comments.filter((c) => c.sentiment === 'negative').length,
+      })).sort((a, b) => a.date - b.date);
 
       const width = 500;
       const height = 300;
-      const margin = { top: 20, right: 30, bottom: 30, left: 40 };
+      const margin = { top: 20, right: 100, bottom: 40, left: 50 };
 
       const x = d3
-        .scaleLinear()
-        .domain([0, data.length - 1])
+        .scaleTime()
+        .domain(d3.extent(data, (d) => d.date))
         .range([margin.left, width - margin.right]);
 
       const y = d3
         .scaleLinear()
         .domain([0, d3.max(data, (d) => Math.max(d.positive, d.neutral, d.negative))])
+        .nice()
         .range([height - margin.bottom, margin.top]);
 
       const line = d3
         .line()
-        .x((d, i) => x(i))
-        .y((d) => y(d));
+        .x((d) => x(d.date))
+        .y((d) => y(d.value));
 
       // Clear any existing SVG
       d3.select('#sentiment-line-chart').selectAll('*').remove();
 
       const svg = d3.select('#sentiment-line-chart').append('svg').attr('width', width).attr('height', height);
 
+      // Add X axis
       svg
         .append('g')
         .attr('transform', `translate(0,${height - margin.bottom})`)
-        .call(d3.axisBottom(x));
+        .call(
+          d3
+            .axisBottom(x)
+            .ticks(width > 500 ? 10 : 5)
+            .tickSizeOuter(0)
+        )
+        .call((g) => g.select('.domain').attr('stroke', 'white'))
+        .call((g) => g.selectAll('.tick line').attr('stroke', 'white'))
+        .call((g) => g.selectAll('.tick text').attr('fill', 'white'));
 
-      svg.append('g').attr('transform', `translate(${margin.left},0)`).call(d3.axisLeft(y));
+      // Add Y axis
+      svg
+        .append('g')
+        .attr('transform', `translate(${margin.left},0)`)
+        .call(d3.axisLeft(y))
+        .call((g) => g.select('.domain').remove())
+        .call((g) =>
+          g
+            .selectAll('.tick line')
+            .clone()
+            .attr('x2', width - margin.left - margin.right)
+            .attr('stroke-opacity', 0.1)
+            .attr('stroke', 'white')
+        )
+        .call((g) => g.selectAll('.tick text').attr('fill', 'white'));
 
       const sentiments = ['positive', 'neutral', 'negative'];
       const colors = ['#4CAF50', '#FFC107', '#F44336'];
@@ -295,6 +332,32 @@ export default {
             line.y((d) => y(d[sentiment]))
           );
       });
+
+      // Add legend to the right side
+      const legend = svg
+        .append('g')
+        .attr('font-family', 'sans-serif')
+        .attr('font-size', 10)
+        .attr('text-anchor', 'start')
+        .selectAll('g')
+        .data(sentiments)
+        .join('g')
+        .attr('transform', (d, i) => `translate(${width - margin.right + 10},${i * 20 + 20})`);
+
+      legend
+        .append('circle')
+        .attr('cx', 15)
+        .attr('cy', 10)
+        .attr('r', 6)
+        .attr('fill', (d, i) => colors[i]);
+
+      legend
+        .append('text')
+        .attr('x', 24)
+        .attr('y', 9.5)
+        .attr('dy', '0.35em')
+        .text((d) => d.charAt(0).toUpperCase() + d.slice(1))
+        .attr('fill', 'white');
     };
 
     watch(
@@ -311,7 +374,7 @@ export default {
       () => comments.value,
       () => {
         if (comments.value.length > 0) {
-          createSentimentLineChart(), createSentimentPieChart();
+          createSentimentLineChart(), createSentimentDonutChart();
         }
       },
       { deep: true }

@@ -99,32 +99,78 @@ func getVideoData(videoID, apiKey string) (*VideoData, error) {
 	}
 
 	// Fetch comments
-	commentsResponse, err := service.CommentThreads.List([]string{"snippet"}).VideoId(videoID).MaxResults(100).Do()
-	if err != nil {
-		return nil, fmt.Errorf("error fetching comments: %v", err)
-	}
+	// commentsResponse, err := service.CommentThreads.List([]string{"snippet"}).VideoId(videoID).MaxResults(200).Do()
+	// if err != nil {
+	// 	return nil, fmt.Errorf("error fetching comments: %v", err)
+	// }
 
+	// var comments []Comment
+
+	// for _, item := range commentsResponse.Items {
+	// 	sentiment, err := analyzeSentiment(item.Snippet.TopLevelComment.Snippet.TextDisplay)
+	// 	if err != nil {
+	// 		return nil, fmt.Errorf("error analyzing sentiment: %v", err)
+	// 	}
+
+	// 	// Parse time string into time object to format
+	// 	t, err := time.Parse(time.RFC3339, item.Snippet.TopLevelComment.Snippet.UpdatedAt)
+	// 	if err != nil {
+	// 		return nil, fmt.Errorf("failed to parse time: %v", err)
+	// 	}
+
+	// 	comment := Comment{
+	// 		ID:        item.Snippet.TopLevelComment.Id,
+	// 		Text:      item.Snippet.TopLevelComment.Snippet.TextDisplay,
+	// 		Sentiment: sentiment,
+	// 		UpdatedAt: t.Format("2006-01-02 15:04:05"),
+	// 	}
+	// 	comments = append(comments, comment)
+	// }
+
+	// Fetch comments with pagination
 	var comments []Comment
-
-	for _, item := range commentsResponse.Items {
-		sentiment, err := analyzeSentiment(item.Snippet.TopLevelComment.Snippet.TextDisplay)
+	pageToken := ""
+	for {
+		commentsResponse, err := service.CommentThreads.List([]string{"snippet"}).
+			VideoId(videoID).
+			MaxResults(100). // Max allowed per page
+			PageToken(pageToken).
+			Do()
 		if err != nil {
-			return nil, fmt.Errorf("error analyzing sentiment: %v", err)
+			return nil, fmt.Errorf("error fetching comments: %v", err)
 		}
 
-		// Parse time string into time object to format
-		t, err := time.Parse(time.RFC3339, item.Snippet.TopLevelComment.Snippet.UpdatedAt)
-		if err != nil {
-			return nil, fmt.Errorf("failed to parse time: %v", err)
+		for _, item := range commentsResponse.Items {
+			sentiment, err := analyzeSentiment(item.Snippet.TopLevelComment.Snippet.TextDisplay)
+			if err != nil {
+				return nil, fmt.Errorf("error analyzing sentiment: %v", err)
+			}
+
+			// Parse time string into time object to format
+			t, err := time.Parse(time.RFC3339, item.Snippet.TopLevelComment.Snippet.UpdatedAt)
+			if err != nil {
+				return nil, fmt.Errorf("failed to parse time: %v", err)
+			}
+
+			comment := Comment{
+				ID:        item.Snippet.TopLevelComment.Id,
+				Text:      item.Snippet.TopLevelComment.Snippet.TextDisplay,
+				Sentiment: sentiment,
+				UpdatedAt: t.Format("2006-01-02 15:04:05"),
+			}
+			comments = append(comments, comment)
 		}
 
-		comment := Comment{
-			ID:        item.Snippet.TopLevelComment.Id,
-			Text:      item.Snippet.TopLevelComment.Snippet.TextDisplay,
-			Sentiment: sentiment,
-			UpdatedAt: t.Format("2006-01-02 15:04:05"),
+		// Check if there are more pages
+		pageToken = commentsResponse.NextPageToken
+		if pageToken == "" {
+			break // No more pages
 		}
-		comments = append(comments, comment)
+
+		// Optional: Add a limit to the number of comments or pages fetched
+		if len(comments) >= 500 { // Example: Limit to 1000 comments
+			break
+		}
 	}
 
 	return &VideoData{
